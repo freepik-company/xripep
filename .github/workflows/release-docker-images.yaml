@@ -18,7 +18,8 @@ permissions:
 
 jobs:
   build:
-    runs-on: default
+    #runs-on: default
+    runs-on: ubuntu-latest
     steps:
       - name: 'Read release tag name (mostly vx.x.x)'
         id: read_tag
