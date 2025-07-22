@@ -10,7 +10,7 @@ spec:
       istio: workload-with-sidecar
 
   # Where to get the plugin
-  url: https://github.com/achetronic/tnep/releases/download/v0.1.0/plugin.wasm
+  url: https://github.com/freepik-company/xripep/releases/download/v0.1.0/plugin.wasm
   imagePullPolicy: Always
 
   # When to apply the plugin
