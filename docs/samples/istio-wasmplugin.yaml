@@ -24,4 +24,4 @@ spec:
     generated_id_rand_bytes_len: 16
     injected_header_name: x-request-id
     overwrite_header_on_exists: true
-    log_format: json # Values: json, human
+    log_format: json # Values: json, console
