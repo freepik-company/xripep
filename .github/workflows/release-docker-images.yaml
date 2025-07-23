@@ -18,8 +18,7 @@ permissions:
 
 jobs:
   build:
-    #runs-on: default
-    runs-on: ubuntu-latest
+    runs-on: default
     steps:
       - name: 'Read release tag name (mostly vx.x.x)'
         id: read_tag
@@ -36,6 +35,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.read_tag.outputs.release_tag }}
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: '>= 363.0.0'
 
       - name: 'Set up make'
         run: |
@@ -68,6 +72,28 @@ jobs:
         id: build_wasm
         run: |
           make build
+
+      # Build and push to Google Artifact Registry
+      # You may be wondering why we are building again instead of re-tagging:
+      # Lack of time and short enough building times
+      - name: 'Docker Login to GAR'
+        run: |
+          gcloud auth configure-docker europe-docker.pkg.dev
+
+      - name: 'Build and push Docker images'
+        env:
+          RELEASE_TAG: ${{ steps.read_tag.outputs.release_tag }}
+        run: |
+          export IMG="europe-docker.pkg.dev/fc-artifacts/applications/$GITHUB_REPOSITORY:$RELEASE_TAG"
+
+          make swagger
+
+          if grep -q '^docker-buildx:' Makefile; then
+            make docker-buildx
+          else
+            make docker-build
+            make docker-push
+          fi
 
       # Build and push to GitHub CR
       - name: 'Docker Login to GHCR'
