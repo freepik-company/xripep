@@ -74,47 +74,49 @@ type pluginContext struct {
 
 // OnPluginStart implements types.PluginContext.
 func (p *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPluginStartStatus {
-	proxywasm.LogDebug("loading plugin config")
+	proxywasm.LogDebugf(CreateLogString(p.logFormat, "starting plugin: processing config"))
+
 	data, err := proxywasm.GetPluginConfiguration()
 	if data == nil {
 		return types.OnPluginStartStatusOK
 	}
 
 	if err != nil {
-		proxywasm.LogCriticalf("error reading plugin configuration: %v", err)
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, "error reading plugin configuration",
+			"error", err.Error()))
 		return types.OnPluginStartStatusFailed
 	}
 
 	if !gjson.Valid(string(data)) {
-		proxywasm.LogCritical(`invalid configuration format; expected {"generated_id_style": "rand|uuid", "generated_id_rand_bytes_len": 16, "injected_header_name": "x-request-id", "overwrite_header_on_exists": <bool> }`)
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `invalid configuration format; expected {"generated_id_style": "rand|uuid", "generated_id_rand_bytes_len": 16, "injected_header_name": "x-request-id", "overwrite_header_on_exists": <bool> }`))
 		return types.OnPluginStartStatusFailed
 	}
 
 	// Parse config param 'generated_id_style'
 	p.generatedIdStyle = gjson.Get(string(data), "generated_id_style").Str
 	if p.generatedIdStyle == "" {
-		proxywasm.LogCritical(`generated_id_style param can not be empty`)
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_style param can not be empty`))
 		return types.OnPluginStartStatusFailed
 	}
 
 	// Parse config param 'generated_id_rand_bytes_len'
 	p.generatedIdRandBytesLen = gjson.Get(string(data), "generated_id_rand_bytes_len").Int()
 	if p.generatedIdRandBytesLen == 0 {
-		proxywasm.LogCritical(`generated_id_rand_bytes_len param can not be empty`)
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_rand_bytes_len param can not be empty`))
 		return types.OnPluginStartStatusFailed
 	}
 
 	// Parse config param 'injected_header_name'
 	p.injectedHeaderName = gjson.Get(string(data), "injected_header_name").Str
 	if p.injectedHeaderName == "" {
-		proxywasm.LogCritical(`injected_header_name param can not be empty`)
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `injected_header_name param can not be empty`))
 		return types.OnPluginStartStatusFailed
 	}
 
 	// Parse config param 'overwrite_header_on_exists'
 	overwriteHeaderOnExistsRaw := gjson.Get(string(data), "overwrite_header_on_exists")
 	if !overwriteHeaderOnExistsRaw.IsBool() {
-		proxywasm.LogCritical(`overwrite_header_on_exists param must be boolean`)
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `overwrite_header_on_exists param must be boolean`))
 		return types.OnPluginStartStatusFailed
 	}
 
@@ -123,12 +125,12 @@ func (p *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlugi
 	// Parse config param 'log_format'
 	p.logFormat = gjson.Get(string(data), "log_format").Str
 	if p.logFormat == "" {
-		proxywasm.LogCritical(`log_format param can not be empty`)
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `log_format param can not be empty`))
 		return types.OnPluginStartStatusFailed
 	}
 
 	if p.logFormat != logFormatJson && p.logFormat != logFormatConsole {
-		proxywasm.LogCritical(`log_format must be 'json' or 'console'`)
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `log_format must be 'json' or 'console'`))
 		return types.OnPluginStartStatusFailed
 	}
 
