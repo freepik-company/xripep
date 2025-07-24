@@ -25,3 +25,5 @@ spec:
     injected_header_name: x-request-id
     overwrite_header_on_exists: true
     log_format: json # Values: json, console
+    log_all_headers: true
+    exclude_log_headers: ["x-custom", ":scheme"]

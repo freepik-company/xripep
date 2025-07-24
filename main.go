@@ -14,6 +14,8 @@ import (
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 	"github.com/tidwall/gjson"
+	"slices"
+	"strings"
 )
 
 const (
@@ -70,6 +72,12 @@ type pluginContext struct {
 
 	// logFormat TODO
 	logFormat string
+
+	// logAllHeaders TODO
+	logAllHeaders bool
+
+	// excludeLogHeaders TODO
+	excludeLogHeaders []string
 }
 
 // OnPluginStart implements types.PluginContext.
@@ -134,6 +142,22 @@ func (p *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlugi
 		return types.OnPluginStartStatusFailed
 	}
 
+	// Parse config param 'log_all_headers'
+	logAllHeadersRaw := gjson.Get(string(data), "log_all_headers")
+	if !logAllHeadersRaw.IsBool() {
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `log_all_headers param must be boolean`))
+		return types.OnPluginStartStatusFailed
+	}
+
+	p.logAllHeaders = logAllHeadersRaw.Bool()
+
+	// Parse config param 'exclude_log_headers'
+	excludeLogHeadersRaw := gjson.Get(string(data), "exclude_log_headers").Array()
+
+	for _, gjsonResult := range excludeLogHeadersRaw {
+		p.excludeLogHeaders = append(p.excludeLogHeaders, strings.ToLower(gjsonResult.Str))
+	}
+
 	//
 	return types.OnPluginStartStatusOK
 }
@@ -159,6 +183,12 @@ type httpHeaders struct {
 
 	// logFormat TODO
 	logFormat string
+
+	// logAllHeaders TODO
+	logAllHeaders bool
+
+	// excludeLogHeaders TODO
+	excludeLogHeaders []string
 }
 
 // NewHttpContext implements types.PluginContext.
@@ -180,6 +210,12 @@ func (p *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 
 		// TODO
 		logFormat: p.logFormat,
+
+		// logAllHeaders TODO
+		logAllHeaders: p.logAllHeaders,
+
+		// excludeLogHeaders TODO
+		excludeLogHeaders: p.excludeLogHeaders,
 	}
 }
 
@@ -236,5 +272,32 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		}
 	}
 
+	// Show all the headers in logs when suitable
+	if !ctx.logAllHeaders {
+		return types.ActionContinue
+	}
+
+	//
+	allHeaders, err := proxywasm.GetHttpRequestHeaders()
+	if err != nil {
+		proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed getting all the headers from request",
+			"error", err.Error()))
+		return types.ActionContinue
+	}
+
+	var headerLogAttrs []interface{}
+	for _, header := range allHeaders {
+		// Ignore excluded headers
+		if slices.Contains(ctx.excludeLogHeaders, strings.ToLower(header[0])) {
+			continue
+		}
+
+		//
+		headerLogAttrs = append(headerLogAttrs, header[0])
+		headerLogAttrs = append(headerLogAttrs, header[1])
+	}
+	proxywasm.LogInfof(CreateLogString(ctx.logFormat, "request headers output", headerLogAttrs...))
+
+	//
 	return types.ActionContinue
 }

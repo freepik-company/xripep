@@ -40,7 +40,9 @@ static_resources:
                                 "generated_id_rand_bytes_len": 16, 
                                 "injected_header_name": "x-request-id",
                                 "overwrite_header_on_exists": false,
-                                "log_format": "json"
+                                "log_format": "json",
+                                "log_all_headers": true,
+                                "exclude_log_headers": ["x-custom", ":scheme"]
                               }
                           vm_config:
                             runtime: "envoy.wasm.runtime.v8"
