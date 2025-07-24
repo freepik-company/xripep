@@ -222,6 +222,34 @@ func (p *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 // OnHttpRequestHeaders implements types.HttpContext.
 func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
 
+	defer func() {
+		// Show all the headers in logs when suitable
+		if !ctx.logAllHeaders {
+			return
+		}
+
+		//
+		allHeaders, err := proxywasm.GetHttpRequestHeaders()
+		if err != nil {
+			proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed getting all the headers from request",
+				"error", err.Error()))
+			return
+		}
+
+		var headerLogAttrs []interface{}
+		for _, header := range allHeaders {
+			// Ignore excluded headers
+			if slices.Contains(ctx.excludeLogHeaders, strings.ToLower(header[0])) {
+				continue
+			}
+
+			//
+			headerLogAttrs = append(headerLogAttrs, header[0])
+			headerLogAttrs = append(headerLogAttrs, header[1])
+		}
+		proxywasm.LogInfof(CreateLogString(ctx.logFormat, "request headers output", headerLogAttrs...))
+	}()
+
 	// Process XRI header.
 	// NotFound errors are ignored as the header will be set later
 	var injectedHeaderValue string
@@ -271,32 +299,6 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 				"error", err.Error()))
 		}
 	}
-
-	// Show all the headers in logs when suitable
-	if !ctx.logAllHeaders {
-		return types.ActionContinue
-	}
-
-	//
-	allHeaders, err := proxywasm.GetHttpRequestHeaders()
-	if err != nil {
-		proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed getting all the headers from request",
-			"error", err.Error()))
-		return types.ActionContinue
-	}
-
-	var headerLogAttrs []interface{}
-	for _, header := range allHeaders {
-		// Ignore excluded headers
-		if slices.Contains(ctx.excludeLogHeaders, strings.ToLower(header[0])) {
-			continue
-		}
-
-		//
-		headerLogAttrs = append(headerLogAttrs, header[0])
-		headerLogAttrs = append(headerLogAttrs, header[1])
-	}
-	proxywasm.LogInfof(CreateLogString(ctx.logFormat, "request headers output", headerLogAttrs...))
 
 	//
 	return types.ActionContinue

@@ -22,7 +22,7 @@ spec:
   pluginConfig:
     generated_id_style: rand # Values: rand, uuid
     generated_id_rand_bytes_len: 16
-    injected_header_name: x-request-id
+    injected_header_name: x-custom-request-id
     overwrite_header_on_exists: true
     log_format: json # Values: json, console
     log_all_headers: true
