@@ -49,7 +49,7 @@ static_resources:
                             runtime: "envoy.wasm.runtime.v8"
                             code:
                               local:
-                                filename: "./dist/main.wasm"
+                                filename: "./dist/plugin.wasm"
 
                               #remote:
                               #  sha256: "xxx"

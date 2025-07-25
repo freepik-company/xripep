@@ -53,10 +53,20 @@ jobs:
           go_version_raw=$(grep "^go " go.mod | awk '{print $2}')
           echo "go_version=${go_version_raw}" >> "$GITHUB_OUTPUT"
 
+      - name: 'Determine Go version to use'
+        id: determine_go_version
+        run: |
+          MIN_VERSION='1.24.2'
+          INPUT_VERSION='${{ steps.read_go_version.outputs.go_version }}'
+          
+          EFFECTIVE_VERSION=$(printf "%s\n%s" "$INPUT_VERSION" "$MIN_VERSION" | sort -V | tail -n1)
+          
+          echo "version=${EFFECTIVE_VERSION}" >> $GITHUB_OUTPUT
+
       - name: 'Set up Go'
         uses: actions/setup-go@v5
         with:
-          go-version: '${{ steps.read_go_version.outputs.go_version }}'
+          go-version: '${{ steps.determine_go_version.outputs.version }}'
 
       - name: 'Set up QEMU'
         id: qemu
