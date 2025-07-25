@@ -301,27 +301,23 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 	}
 	calculatedRequestId = ctx.generatedIdPrefix + calculatedRequestId
 
-	// Already present with content, and overwrite IS requested
-	if (injectedHeaderFound && injectedHeaderValue != "") && ctx.overwriteHeaderOnExists {
+	//
+	if injectedHeaderFound && (ctx.overwriteHeaderOnExists || injectedHeaderValue == "") {
 		err = proxywasm.ReplaceHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId)
 		if err != nil {
 			proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed to overwrite header",
 				"header", ctx.injectedHeaderName,
 				"error", err.Error()))
 		}
+		return types.ActionContinue
 	}
 
-	// Header without content at this point. This means the header is present and empty or not present.
-	// For both cases, add it
-	if injectedHeaderValue == "" {
-		err = proxywasm.AddHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId)
-		if err != nil {
-			proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed to set header",
-				"header", ctx.injectedHeaderName,
-				"error", err.Error()))
-		}
+	// At this point, header is not present. Add it
+	err = proxywasm.AddHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId)
+	if err != nil {
+		proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed to set header",
+			"header", ctx.injectedHeaderName,
+			"error", err.Error()))
 	}
-
-	//
 	return types.ActionContinue
 }
