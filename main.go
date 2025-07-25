@@ -290,19 +290,19 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		}
 	}
 
-	// Header not present or empty, add it
+	// Header missing or empty? Create/replace it
 	if strings.TrimSpace(injectedHeaderValue) == "" {
-	    err = proxywasm.ReplaceHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId)
-	    if err != nil {
-	        if errors.As(err, &types.ErrorStatusNotFound) {
-	            if err = proxywasm.AddHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId); err != nil {
-	                proxywasm.LogInfof(CreateLogString(ctx.logFormat,
-	                    "failed to add header", "header", ctx.injectedHeaderName, "error", err.Error()))
-	            }
-	        } else {
-	            proxywasm.LogInfof(CreateLogString(ctx.logFormat,
+	    // Try add first (cheaper). If it existed, fall back to replace.
+	    if err := proxywasm.AddHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId); 
+	        errors.Is(err, types.ErrorStatusNotFound) {
+	
+	        if err = proxywasm.ReplaceHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId); err != nil {
+	            proxywasm.LogWarnf(CreateLogString(ctx.logFormat,
 	                "failed to replace header", "header", ctx.injectedHeaderName, "error", err.Error()))
 	        }
+	    } else if err != nil {
+	        proxywasm.LogWarnf(CreateLogString(ctx.logFormat,
+	            "failed to add header", "header", ctx.injectedHeaderName, "error", err.Error()))
 	    }
 	}
 
