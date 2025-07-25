@@ -291,13 +291,16 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 	}
 
 	// Header not present, add it
-	if injectedHeaderValue == "" {
-		err = proxywasm.AddHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId)
-		if err != nil {
-			proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed to set header",
-				"header", ctx.injectedHeaderName,
-				"error", err.Error()))
-		}
+	if strings.TrimSpace(injectedHeaderValue) == "" {
+	    if err = proxywasm.ReplaceHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId); err != nil {
+	        if errors.As(err, &types.ErrorStatusNotFound) {
+	            err = proxywasm.AddHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId)
+	        }
+	    }
+	    if err != nil {
+	        proxywasm.LogInfof(CreateLogString(ctx.logFormat,
+	            "failed to inject header", "header", ctx.injectedHeaderName, "error", err.Error()))
+	    }
 	}
 
 	//
