@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   releases-matrix:
-    name: Release Go Binary
+    name: Release WASM Binary
     runs-on: ubuntu-latest
     steps:
       - id: read_tag
@@ -49,7 +49,8 @@ jobs:
       - name: 'Set up Go'
         uses: actions/setup-go@v5
         with:
-          go-version: '${{ steps.read_go_version.outputs.go_version }}'
+          #go-version: '${{ steps.read_go_version.outputs.go_version }}'
+          go-version: '1.24.2'
 
       - name: Build WASM binary
         id: build_wasm
