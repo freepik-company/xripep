@@ -38,6 +38,7 @@ static_resources:
                               {
                                 "generated_id_style": "rand",
                                 "generated_id_rand_bytes_len": 16, 
+                                "generated_id_prefix": "custom-prefix-",
                                 "injected_header_name": "x-custom-request-id",
                                 "overwrite_header_on_exists": false,
                                 "log_format": "json",

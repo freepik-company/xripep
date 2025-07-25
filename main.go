@@ -58,25 +58,33 @@ type pluginContext struct {
 
 	// Following fields are configured via plugin configuration during OnPluginStart.
 
-	// generatedIdStyle TODO
+	// generatedIdStyle represents the style of the generated request-id
+	// Possible values are: rand, uuid
+	// Default value: uuid
 	generatedIdStyle string
 
-	// generatedIdRandBytesLen TODO
+	// generatedIdRandBytesLen represents the length of the request-id when generation style is 'rand''
 	generatedIdRandBytesLen int64
 
-	// injectedHeaderName TODO
+	// generatedIdPrefix represents the prefix to be set in the request-id
+	generatedIdPrefix string
+
+	// injectedHeaderName represents the header where the request-id will be processed
 	injectedHeaderName string
 
-	// overwriteHeaderOnExists TODO
+	// overwriteHeaderOnExists represents a flag to overwrite the header when it's present
+	// Disabled by default
 	overwriteHeaderOnExists bool
 
-	// logFormat TODO
+	// logFormat represents the format of the logs
+	// Possible values are: json, console
 	logFormat string
 
-	// logAllHeaders TODO
+	// logAllHeaders represents a flag to log all the headers or not
+	// Disabled by default
 	logAllHeaders bool
 
-	// excludeLogHeaders TODO
+	// excludeLogHeaders represent a list of headers that will be excluded when 'log_all_headers' is enabled
 	excludeLogHeaders []string
 }
 
@@ -96,60 +104,78 @@ func (p *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlugi
 	}
 
 	if !gjson.Valid(string(data)) {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `invalid configuration format; expected {"generated_id_style": "rand|uuid", "generated_id_rand_bytes_len": 16, "injected_header_name": "x-request-id", "overwrite_header_on_exists": <bool> }`))
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `invalid configuration format. a valid JSON is expected`))
 		return types.OnPluginStartStatusFailed
 	}
 
 	// Parse config param 'generated_id_style'
-	p.generatedIdStyle = gjson.Get(string(data), "generated_id_style").Str
-	if p.generatedIdStyle == "" {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_style param can not be empty`))
-		return types.OnPluginStartStatusFailed
+	// Default value: uuid
+	p.generatedIdStyle = generatedIdStyleUuid
+	generatedIdStyleRaw := gjson.Get(string(data), "generated_id_style")
+	if generatedIdStyleRaw.Exists() {
+		if generatedIdStyleRaw.Str != generatedIdStyleUuid && generatedIdStyleRaw.Str != generatedIdStyleRand {
+			proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_style param invalid. valid values are: rand, uuid`))
+			return types.OnPluginStartStatusFailed
+		}
+
+		p.generatedIdStyle = generatedIdStyleRaw.Str
 	}
 
 	// Parse config param 'generated_id_rand_bytes_len'
 	p.generatedIdRandBytesLen = gjson.Get(string(data), "generated_id_rand_bytes_len").Int()
-	if p.generatedIdRandBytesLen == 0 {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_rand_bytes_len param can not be empty`))
+	if p.generatedIdStyle == generatedIdStyleRand && p.generatedIdRandBytesLen == 0 {
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_rand_bytes_len param can not be empty when id style is 'rand'`))
 		return types.OnPluginStartStatusFailed
 	}
+
+	// Parse config param 'generated_id_prefix'
+	// This param can be empty, so its content not checked
+	p.generatedIdPrefix = gjson.Get(string(data), "generated_id_prefix").Str
 
 	// Parse config param 'injected_header_name'
-	p.injectedHeaderName = gjson.Get(string(data), "injected_header_name").Str
-	if p.injectedHeaderName == "" {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `injected_header_name param can not be empty`))
+	injectedHeaderNameRaw := gjson.Get(string(data), "injected_header_name")
+	if !injectedHeaderNameRaw.Exists() {
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `injected_header_name param is mandatory`))
 		return types.OnPluginStartStatusFailed
 	}
+	p.injectedHeaderName = injectedHeaderNameRaw.Str
 
 	// Parse config param 'overwrite_header_on_exists'
+	// Default value: false
 	overwriteHeaderOnExistsRaw := gjson.Get(string(data), "overwrite_header_on_exists")
-	if !overwriteHeaderOnExistsRaw.IsBool() {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `overwrite_header_on_exists param must be boolean`))
-		return types.OnPluginStartStatusFailed
-	}
+	if overwriteHeaderOnExistsRaw.Exists() {
+		if !overwriteHeaderOnExistsRaw.IsBool() {
+			proxywasm.LogCriticalf(CreateLogString(p.logFormat, `overwrite_header_on_exists param must be boolean`))
+			return types.OnPluginStartStatusFailed
+		}
 
-	p.overwriteHeaderOnExists = overwriteHeaderOnExistsRaw.Bool()
+		p.overwriteHeaderOnExists = overwriteHeaderOnExistsRaw.Bool()
+	}
 
 	// Parse config param 'log_format'
-	p.logFormat = gjson.Get(string(data), "log_format").Str
-	if p.logFormat == "" {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `log_format param can not be empty`))
-		return types.OnPluginStartStatusFailed
-	}
+	// Default value: json
+	p.logFormat = logFormatJson
+	logFormatRaw := gjson.Get(string(data), "log_format")
+	if logFormatRaw.Exists() {
+		if logFormatRaw.Str != logFormatJson && logFormatRaw.Str != logFormatConsole {
+			proxywasm.LogCriticalf(CreateLogString(p.logFormat, `log_format param invalid. valid values are: json, console`))
+			return types.OnPluginStartStatusFailed
+		}
 
-	if p.logFormat != logFormatJson && p.logFormat != logFormatConsole {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `log_format must be 'json' or 'console'`))
-		return types.OnPluginStartStatusFailed
+		p.logFormat = logFormatRaw.Str
 	}
 
 	// Parse config param 'log_all_headers'
+	// Default value: false
 	logAllHeadersRaw := gjson.Get(string(data), "log_all_headers")
-	if !logAllHeadersRaw.IsBool() {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `log_all_headers param must be boolean`))
-		return types.OnPluginStartStatusFailed
-	}
+	if logAllHeadersRaw.Exists() {
+		if !logAllHeadersRaw.IsBool() {
+			proxywasm.LogCriticalf(CreateLogString(p.logFormat, `log_all_headers param must be boolean`))
+			return types.OnPluginStartStatusFailed
+		}
 
-	p.logAllHeaders = logAllHeadersRaw.Bool()
+		p.logAllHeaders = logAllHeadersRaw.Bool()
+	}
 
 	// Parse config param 'exclude_log_headers'
 	excludeLogHeadersRaw := gjson.Get(string(data), "exclude_log_headers").Array()
@@ -169,25 +195,19 @@ type httpHeaders struct {
 	types.DefaultHttpContext
 	contextID uint32
 
-	// generatedIdStyle TODO
-	generatedIdStyle string
-
-	// generatedIdRandBytesLen TODO
+	// Following params are properly explained in pluginContext structure
+	//
+	generatedIdStyle        string
 	generatedIdRandBytesLen int64
+	generatedIdPrefix       string
 
-	// injectedHeaderName TODO
-	injectedHeaderName string
-
-	// overwriteHeaderOnExists TODO
+	//
+	injectedHeaderName      string
 	overwriteHeaderOnExists bool
 
-	// logFormat TODO
-	logFormat string
-
-	// logAllHeaders TODO
-	logAllHeaders bool
-
-	// excludeLogHeaders TODO
+	//
+	logFormat         string
+	logAllHeaders     bool
 	excludeLogHeaders []string
 }
 
@@ -196,25 +216,18 @@ func (p *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 	return &httpHeaders{
 		contextID: contextID,
 
-		// TODO
-		generatedIdStyle: p.generatedIdStyle,
-
-		// TODO
+		//
+		generatedIdStyle:        p.generatedIdStyle,
 		generatedIdRandBytesLen: p.generatedIdRandBytesLen,
+		generatedIdPrefix:       p.generatedIdPrefix,
 
-		// TODO
-		injectedHeaderName: p.injectedHeaderName,
-
-		// TODO
+		//
+		injectedHeaderName:      p.injectedHeaderName,
 		overwriteHeaderOnExists: p.overwriteHeaderOnExists,
 
-		// TODO
-		logFormat: p.logFormat,
-
-		// logAllHeaders TODO
-		logAllHeaders: p.logAllHeaders,
-
-		// excludeLogHeaders TODO
+		//
+		logFormat:         p.logFormat,
+		logAllHeaders:     p.logAllHeaders,
 		excludeLogHeaders: p.excludeLogHeaders,
 	}
 }
@@ -252,6 +265,7 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 
 	// Process XRI header.
 	// NotFound errors are ignored as the header will be set later
+	var injectedHeaderFound bool = true
 	var injectedHeaderValue string
 	injectedHeaderValue, err := proxywasm.GetHttpRequestHeader(ctx.injectedHeaderName)
 	if err != nil {
@@ -261,11 +275,14 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 				"error", err.Error()))
 			return types.ActionContinue
 		}
+		injectedHeaderFound = false
 	}
+	injectedHeaderValue = strings.TrimSpace(injectedHeaderValue)
 
-	// Already present and overwrite NOT requested
-	if injectedHeaderValue != "" && !ctx.overwriteHeaderOnExists {
-		proxywasm.LogInfof(CreateLogString(ctx.logFormat, "header already present. Overwriting is disabled",
+	// Already present with content, and overwrite NOT requested
+	if (injectedHeaderFound && injectedHeaderValue != "") && !ctx.overwriteHeaderOnExists {
+		proxywasm.LogCriticalf("CP1")
+		proxywasm.LogInfof(CreateLogString(ctx.logFormat, "header already present with content. Overwriting is disabled",
 			"header", ctx.injectedHeaderName,
 			"header_value", injectedHeaderValue))
 		return types.ActionContinue
@@ -280,8 +297,13 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		calculatedRequestId = GetStringId(int(ctx.generatedIdRandBytesLen))
 	}
 
-	// Already present and overwrite IS requested
-	if injectedHeaderValue != "" && ctx.overwriteHeaderOnExists {
+	if calculatedRequestId == "" {
+		proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed to create a request-id"))
+	}
+	calculatedRequestId = ctx.generatedIdPrefix + calculatedRequestId
+
+	// Already present with content, and overwrite IS requested
+	if (injectedHeaderFound && injectedHeaderValue != "") && ctx.overwriteHeaderOnExists {
 		err = proxywasm.ReplaceHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId)
 		if err != nil {
 			proxywasm.LogInfof(CreateLogString(ctx.logFormat, "failed to overwrite header",
@@ -290,7 +312,8 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		}
 	}
 
-	// Header not present, add it
+	// Header without content at this point. This means the header is present and empty or not present.
+	// For both cases, add it
 	if injectedHeaderValue == "" {
 		err = proxywasm.AddHttpRequestHeader(ctx.injectedHeaderName, calculatedRequestId)
 		if err != nil {
