@@ -281,7 +281,6 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 
 	// Already present with content, and overwrite NOT requested
 	if (injectedHeaderFound && injectedHeaderValue != "") && !ctx.overwriteHeaderOnExists {
-		proxywasm.LogCriticalf("CP1")
 		proxywasm.LogInfof(CreateLogString(ctx.logFormat, "header already present with content. Overwriting is disabled",
 			"header", ctx.injectedHeaderName,
 			"header_value", injectedHeaderValue))
