@@ -50,6 +50,14 @@ static_resources:
                             code:
                               local:
                                 filename: "./dist/main.wasm"
+
+                              #remote:
+                              #  sha256: "xxx"
+                              #  http_uri:
+                              #    uri: https://github.com/freepik-company/xripep/releases/download/v0.3.2/plugin.wasm
+                              #    cluster: wasm_cluster_github
+                              #    timeout: 30s
+
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -139,6 +147,22 @@ static_resources:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
 
   clusters:
+    - name: wasm_cluster_github
+      type: LOGICAL_DNS
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          sni: api.github.com
+      load_assignment:
+        cluster_name: wasm_cluster_github
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: api.github.com
+                      port_value: 443
     - name: web_service
       connect_timeout: 0.25s
       type: STATIC

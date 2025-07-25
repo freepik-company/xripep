@@ -31,9 +31,25 @@ jobs:
 
           echo "release_tag=${TAG}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ steps.read_tag.outputs.release_tag }}
+
+      - name: 'Set up make'
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install --yes build-essential
+
+      - name: 'Read Go version from go.mod'
+        id: read_go_version
+        run: |
+          go_version_raw=$(grep "^go " go.mod | awk '{print $2}')
+          echo "go_version=${go_version_raw}" >> "$GITHUB_OUTPUT"
+
+      - name: 'Set up Go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '${{ steps.read_go_version.outputs.go_version }}'
 
       - name: Build WASM binary
         id: build_wasm

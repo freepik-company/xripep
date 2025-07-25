@@ -1,9 +1,7 @@
-// This WASM plugin for Envoy is designed to manage non-trusted IPs in the 'x-forwarded-for' HTTP header.
-// Ideally, it should be used in the 'AUTHZ' filter chain phase of Istio sidecars.
-
-// Its purpose is to sanitize the XFF header before applying an AuthorizationPolicy to restrict origins for requests,
-// as this policy only operates on the rightmost IP in the mentioned header.
-// Additionally, this plugin sets the 'x-original-forwarded-for' header with the original chain to preserve critical information.
+// This WASM plugin for Envoy is designed to generate a header like 'x-request-id' with different formats, prefixes,
+// and other useful features.
+// It generates when the header is missing, and preserves when it's present.
+// Additionally, the plugin is able to log the headers, excluding some of them, and other related stuff.
 
 // Ref: https://github.com/tetratelabs/proxy-wasm-go-sdk/blob/main/examples/http_headers/
 
