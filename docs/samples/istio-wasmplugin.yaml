@@ -13,6 +13,9 @@ spec:
   url: https://github.com/freepik-company/xripep/releases/download/v0.1.0/plugin.wasm
   imagePullPolicy: Always
 
+  # OCI is also available
+  # url: oci://ghcr.io/freepik-company/xripep:v0.3.2
+
   # When to apply the plugin
   # Ref: https://istio.io/latest/docs/reference/config/proxy_extensions/wasm-plugin/#PluginType
   type: HTTP

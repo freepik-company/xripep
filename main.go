@@ -17,8 +17,6 @@ import (
 )
 
 const (
-	HttpHeaderXri = "x-request-id"
-
 	//
 	generatedIdStyleRand = "rand"
 	generatedIdStyleUuid = "uuid"
@@ -61,7 +59,7 @@ type pluginContext struct {
 	// Default value: uuid
 	generatedIdStyle string
 
-	// generatedIdRandBytesLen represents the length of the request-id when generation style is 'rand''
+	// generatedIdRandBytesLen represents the length of the request-id when generation style is 'rand'
 	generatedIdRandBytesLen int64
 
 	// generatedIdPrefix represents the prefix to be set in the request-id
@@ -88,7 +86,7 @@ type pluginContext struct {
 
 // OnPluginStart implements types.PluginContext.
 func (p *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPluginStartStatus {
-	proxywasm.LogDebugf(CreateLogString(p.logFormat, "starting plugin: processing config"))
+	proxywasm.LogInfof(CreateLogString(p.logFormat, "starting plugin: processing config"))
 
 	data, err := proxywasm.GetPluginConfiguration()
 	if data == nil {

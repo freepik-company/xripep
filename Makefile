@@ -68,7 +68,7 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 .PHONY: build
 build: ## Build WASM binary.
 	@mkdir -p dist
-	GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o dist/main.wasm .
+	GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -ldflags "-s -w" -o dist/main.wasm .
 
 .PHONY: run
 run: envoy build ## Run an envoy using your plugin from your host
@@ -124,7 +124,7 @@ $(LOCALBIN):
 ENVOY ?= $(LOCALBIN)/envoy
 
 ## Tool Versions
-ENVOY_VERSION ?= 1.33.0
+ENVOY_VERSION ?= 1.34.2
 
 .PHONY: envoy
 envoy: $(ENVOY) ## Download envoy locally if necessary.
