@@ -23,7 +23,7 @@ spec:
 
   # Params to pass to the plugin
   pluginConfig:
-    generated_id_style: rand # Values: rand, uuid
+    generated_id_style: rand # Values: rand, randHex, uuid
     generated_id_rand_bytes_len: 16
     generated_id_prefix: 'custom-prefix-'
     injected_header_name: x-custom-request-id
