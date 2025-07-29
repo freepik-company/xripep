@@ -9,6 +9,7 @@ import (
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyz" + "0123456789"
+const hexCharset = "0123456789abcdef"
 
 var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -22,6 +23,10 @@ func stringWithCharset(length int, charset string) string {
 
 func GetStringId(length int) string {
 	return stringWithCharset(length, charset)
+}
+
+func GetHexString(length int) string {
+	return stringWithCharset(length, hexCharset)
 }
 
 func GetUuid() string {

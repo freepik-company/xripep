@@ -18,8 +18,9 @@ import (
 
 const (
 	//
-	generatedIdStyleRand = "rand"
-	generatedIdStyleUuid = "uuid"
+	generatedIdStyleRand    = "rand"
+	generatedIdStyleRandHex = "randhex"
+	generatedIdStyleUuid    = "uuid"
 
 	//
 	logFormatJson    = "json"
@@ -109,8 +110,8 @@ func (p *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlugi
 	p.generatedIdStyle = generatedIdStyleUuid
 	generatedIdStyleRaw := gjson.Get(string(data), "generated_id_style")
 	if generatedIdStyleRaw.Exists() {
-		if generatedIdStyleRaw.Str != generatedIdStyleUuid && generatedIdStyleRaw.Str != generatedIdStyleRand {
-			proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_style param invalid. valid values are: rand, uuid`))
+		if generatedIdStyleRaw.Str != generatedIdStyleUuid && generatedIdStyleRaw.Str != generatedIdStyleRand && generatedIdStyleRaw.Str != generatedIdStyleRandHex {
+			proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_style param invalid. valid values are: rand, randhex, uuid`))
 			return types.OnPluginStartStatusFailed
 		}
 
@@ -119,8 +120,8 @@ func (p *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlugi
 
 	// Parse config param 'generated_id_rand_bytes_len'
 	p.generatedIdRandBytesLen = gjson.Get(string(data), "generated_id_rand_bytes_len").Int()
-	if p.generatedIdStyle == generatedIdStyleRand && p.generatedIdRandBytesLen == 0 {
-		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_rand_bytes_len param can not be empty when id style is 'rand'`))
+	if (p.generatedIdStyle == generatedIdStyleRand || p.generatedIdStyle == generatedIdStyleRandHex) && p.generatedIdRandBytesLen == 0 {
+		proxywasm.LogCriticalf(CreateLogString(p.logFormat, `generated_id_rand_bytes_len param can not be empty when id style is 'rand' or 'randhex'`))
 		return types.OnPluginStartStatusFailed
 	}
 
@@ -290,6 +291,9 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		calculatedRequestId = GetUuid()
 	case generatedIdStyleRand:
 		calculatedRequestId = GetStringId(int(ctx.generatedIdRandBytesLen))
+	}
+	case generatedIdStyleRandHex:
+		calculatedRequestId = GetHexString(int(ctx.generatedIdRandBytesLen))
 	}
 
 	if calculatedRequestId == "" {
