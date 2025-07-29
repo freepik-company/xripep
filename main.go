@@ -291,7 +291,6 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		calculatedRequestId = GetUuid()
 	case generatedIdStyleRand:
 		calculatedRequestId = GetStringId(int(ctx.generatedIdRandBytesLen))
-	}
 	case generatedIdStyleRandHex:
 		calculatedRequestId = GetHexString(int(ctx.generatedIdRandBytesLen))
 	}
