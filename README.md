@@ -31,7 +31,7 @@ Deploying process for this plugin depends on the target (Istio or pure Envoy). Y
 in [documentation directory](./docs/samples). In fact, these examples are used by us to test, so you can rely on them.
 
 Additionally, this plugin can be deployed as [GCP Service Extension](https://cloud.google.com/service-extensions/docs/overview) using
-our OCI image
+our OCI image. If you want to tune the defaults, the config file for GCP is just a file called `plugin.config` whose content is our json config.
 
 ## How to develop
 
